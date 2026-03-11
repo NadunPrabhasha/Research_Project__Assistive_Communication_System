@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Symbol Communication</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    margin:0;
+    padding:0;
+    text-align:center;
+}
+.back-btn {
+    
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #7eaf70;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 22px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.back-btn:hover {
+    background-color: #45a049;
+    transform: translateY(-2px);
+}
+
+.container{
+    max-width:1000px;
+    margin:auto;
+    padding:40px 20px;
+}
+
+h1{
+    margin-bottom:10px;
+    font-size:60px;
+    color:#111827;
+}
+
+.subtitle{
+    color:#666;
+    margin-bottom:30px;
+    font-size:22px;
+    font-weight: bold;
+}
+
+.symbol-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:25px;
+    margin-top:30px;
+}
+
+.symbol{
+    background:white;
+    padding:30px;
+    border-radius:18px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.15);
+    cursor:pointer;
+    transition:0.25s;
+    border:3px solid transparent;
+}
+
+.symbol:hover{
+    transform:translateY(-5px);
+    box-shadow:0 10px 20px rgba(0,0,0,0.18);
+}
+
+.symbol-icon{
+    font-size:60px;
+    margin-bottom:10px;
+}
+
+.symbol-label{
+    font-size:20px;
+    font-weight:bold;
+}
+
+.output{
+    margin-top:40px;
+    background:white;
+    padding:25px;
+    border-radius:18px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.15);
+}
+
+#selectedIcon{
+    font-size:80px;
+    margin-bottom:10px;
+}
+
+#outputText{
+    font-size:28px;
+    font-weight:bold;
+    color:#2563eb;
+    margin:0;
+}
+
+/* .back{
+    margin-top:30px;
+    display:inline-block;
+    text-decoration:none;
+    font-weight:bold;
+    color:#333;
+    font-size:18px;
+} */
+
+@media (max-width: 768px){
+    h1{
+        font-size:30px;
+    }
+
+    .subtitle{
+        font-size:16px;
+    }
+
+    .symbol-icon{
+        font-size:50px;
+    }
+
+    .symbol-label{
+        font-size:18px;
+    }
+
+    #selectedIcon{
+        font-size:70px;
+    }
+
+    #outputText{
+        font-size:22px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Symbol Based Communication</h1>
+    <p class="subtitle">Click a symbol to speak</p>
+
+    <div class="symbol-grid">
+
+        <div class="symbol" onclick="speak('I am happy','🙂', this)">
+            <div class="symbol-icon">🙂</div>
+            <div class="symbol-label">Happy</div>
+        </div>
+
+        <div class="symbol" onclick="speak('I need help','🆘', this)">
+            <div class="symbol-icon">🆘</div>
+            <div class="symbol-label">Help</div>
+        </div>
+
+        <div class="symbol" onclick="speak('I need food','🍽️', this)">
+            <div class="symbol-icon">🍽️</div>
+            <div class="symbol-label">Food</div>
+        </div>
+
+        <div class="symbol" onclick="speak('I need water','💧', this)">
+            <div class="symbol-icon">💧</div>
+            <div class="symbol-label">Water</div>
+        </div>
+
+        <div class="symbol" onclick="speak('I need to go to the toilet','🚻', this)">
+            <div class="symbol-icon">🚻</div>
+            <div class="symbol-label">Toilet</div>
+        </div>
+
+    </div>
+
+    <div class="output">
+        <h2>Selected Output</h2>
+        <div id="selectedIcon">🤖</div>
+        <p id="outputText">No symbol selected</p>
+    </div>
+
+    <!-- <a class="back" href="/">← Back to Home</a> -->
+     <a href="/"  class="back-btn">Back to Home</a>
+
+</div>
+
+<script>
+function speakWithBrowser(sentence) {
+    const utterance = new SpeechSynthesisUtterance(sentence);
+    utterance.lang = "en-US";
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+}
+
+function speak(sentence, icon, element) {
+    document.getElementById("outputText").innerText = sentence;
+    document.getElementById("selectedIcon").innerText = icon;
+
+    document.querySelectorAll(".symbol").forEach(item => {
+        item.style.border = "3px solid transparent";
+    });
+
+    element.style.border = "3px solid #2563eb";
+
+    speakWithBrowser(sentence);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+venv/
+venv_mediapipe/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.ipynb_checkpoints/
+
+*.h5
+*.keras
+*.ckpt
+*.pb
+
+data/
+dataset/
+datasets/

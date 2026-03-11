@@ -1,0 +1,16 @@
+flask
+tensorflow==2.15.0
+mediapipe==0.10.9
+opencv-contrib-python==4.8.1.78
+numpy==1.26.4
+pyttsx3
+matplotlib
+pillow
+
+
+
+flask
+opencv-python
+tensorflow
+numpy
+pyttsx3
