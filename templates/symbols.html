@@ -13,8 +13,8 @@ body{
     padding:0;
     text-align:center;
 }
+
 .back-btn {
-    
     display: inline-block;
     padding: 10px 20px;
     background-color: #7eaf70;
@@ -102,15 +102,6 @@ h1{
     margin:0;
 }
 
-/* .back{
-    margin-top:30px;
-    display:inline-block;
-    text-decoration:none;
-    font-weight:bold;
-    color:#333;
-    font-size:18px;
-} */
-
 @media (max-width: 768px){
     h1{
         font-size:30px;
@@ -148,27 +139,27 @@ h1{
 
     <div class="symbol-grid">
 
-        <div class="symbol" onclick="speak('I am happy','🙂', this)">
+        <div class="symbol" onclick="speakSymbol('I am happy', '🙂', this)">
             <div class="symbol-icon">🙂</div>
             <div class="symbol-label">Happy</div>
         </div>
 
-        <div class="symbol" onclick="speak('I need help','🆘', this)">
+        <div class="symbol" onclick="speakSymbol('I need help', '🆘', this)">
             <div class="symbol-icon">🆘</div>
             <div class="symbol-label">Help</div>
         </div>
 
-        <div class="symbol" onclick="speak('I need food','🍽️', this)">
+        <div class="symbol" onclick="speakSymbol('I need food', '🍽️', this)">
             <div class="symbol-icon">🍽️</div>
             <div class="symbol-label">Food</div>
         </div>
 
-        <div class="symbol" onclick="speak('I need water','💧', this)">
+        <div class="symbol" onclick="speakSymbol('I need water', '💧', this)">
             <div class="symbol-icon">💧</div>
             <div class="symbol-label">Water</div>
         </div>
 
-        <div class="symbol" onclick="speak('I need to go to the toilet','🚻', this)">
+        <div class="symbol" onclick="speakSymbol('I need to go to the toilet', '🚻', this)">
             <div class="symbol-icon">🚻</div>
             <div class="symbol-label">Toilet</div>
         </div>
@@ -181,12 +172,14 @@ h1{
         <p id="outputText">No symbol selected</p>
     </div>
 
-    <!-- <a class="back" href="/">← Back to Home</a> -->
-     <a href="/"  class="back-btn">Back to Home</a>
+    <a href="/" class="back-btn">Back to Home</a>
 
 </div>
 
 <script>
+/*
+DELETED BROWSER SPEECH PART:
+
 function speakWithBrowser(sentence) {
     const utterance = new SpeechSynthesisUtterance(sentence);
     utterance.lang = "en-US";
@@ -198,17 +191,40 @@ function speakWithBrowser(sentence) {
     window.speechSynthesis.speak(utterance);
 }
 
-function speak(sentence, icon, element) {
+This was removed because the final version should use backend pyttsx3 only.
+*/
+
+function speakSymbol(sentence, icon, element) {
+    // Show selected sentence and icon on the page
     document.getElementById("outputText").innerText = sentence;
     document.getElementById("selectedIcon").innerText = icon;
 
+    // Remove border from all symbols
     document.querySelectorAll(".symbol").forEach(item => {
         item.style.border = "3px solid transparent";
     });
 
+    // Highlight selected symbol
     element.style.border = "3px solid #2563eb";
 
-    speakWithBrowser(sentence);
+    // Send sentence to Flask backend
+    // Backend will speak using pyttsx3
+    fetch("/speak_symbol", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            text: sentence
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Backend speech response:", data);
+    })
+    .catch(error => {
+        console.error("Error sending symbol speech request:", error);
+    });
 }
 </script>
 

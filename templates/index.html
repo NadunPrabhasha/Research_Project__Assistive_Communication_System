@@ -71,16 +71,16 @@
             toilet: "🚻"
         };
 
-        let previousSentence = "";
+        // let previousSentence = "";
 
-        function speak(text) {
-            if (!('speechSynthesis' in window)) return;
-            if (!text || text === "Waiting for gesture...") return;
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.rate = 1;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(utter);
-        }
+        // function speak(text) {
+        //     if (!('speechSynthesis' in window)) return;
+        //     if (!text || text === "Waiting for gesture...") return;
+        //     const utter = new SpeechSynthesisUtterance(text);
+        //     utter.rate = 1;
+        //     window.speechSynthesis.cancel();
+        //     window.speechSynthesis.speak(utter);
+        // }
 
         async function fetchPrediction() {
             try {
@@ -96,11 +96,11 @@
                 document.getElementById("emoji").innerText = emojiMap[data.label] || "🤖";
                 document.getElementById("confidenceBar").style.width = `${data.confidence}%`;
 
-                // Speak sentence on change
-                if (data.sentence && data.sentence !== previousSentence) {
-                    speak(data.sentence);
-                    previousSentence = data.sentence;
-                }
+                // // Speak sentence on change
+                // if (data.sentence && data.sentence !== previousSentence) {
+                //     speak(data.sentence);
+                //     previousSentence = data.sentence;
+                // }
             } catch (error) {
                 console.error("Error fetching prediction:", error);
             }

@@ -11,7 +11,6 @@ import os
 import logging
 import atexit
 import threading
-import queue
 from collections import deque
 import predictor
 import numpy as np
@@ -20,44 +19,26 @@ app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO)
 
+# -------------------------
+# Camera setup
+# -------------------------
+
 camera = cv2.VideoCapture(0)
 if not camera.isOpened():
     raise RuntimeError("Could not open webcam")
+
+
+# -------------------------
+# UPDATED TEXT-TO-SPEECH SETUP
+# -------------------------
+
+"""
+DELETED OLD SPEECH PART:
 
 engine = pyttsx3.init()
 engine.setProperty("rate", 150)
 
 speech_queue = queue.Queue()
-
-latest_prediction = {
-    "label": "Waiting...",
-    "confidence": 0.0,
-    "sentence": "Waiting for gesture...",
-    "model_status": predictor.model_status,
-    "detector_status": "Checking detector..."
-}
-
-hand_detector_status = "Unknown"
-history = deque(maxlen=10)
-
-last_spoken = ""
-last_spoken_time = 0
-last_hand_seen_time = 0
-current_stable_label = ""
-ready_for_next_speech = True
-
-CONFIDENCE_THRESHOLD = 0.75
-SPEAK_INTERVAL = 2
-MIN_STABLE_FRAMES = 6
-NO_HAND_RESET_TIME = 1.2
-
-MODEL_PATH = os.path.join("models", "hand_landmarker.task")
-
-hand_landmarker = None
-legacy_hands = None
-legacy_mp_draw = None
-legacy_mp_hands_lib = None
-
 
 def speech_worker():
     while True:
@@ -72,18 +53,100 @@ def speech_worker():
         finally:
             speech_queue.task_done()
 
-
 speech_thread = threading.Thread(target=speech_worker, daemon=True)
 speech_thread.start()
 
+Reason for removing:
+The shared pyttsx3 engine and queue may work only one time in Flask.
+The updated version below creates a fresh pyttsx3 engine inside a safe speech thread.
+"""
+
+speech_lock = threading.Lock()
+last_spoken_text = ""
+last_spoken_time = 0
+SPEAK_INTERVAL = 2.5
+
+
+def speak_text(text):
+    """
+    Speak text using backend pyttsx3.
+    This function is used by both Gesture Mode and Symbol Mode.
+    """
+    global last_spoken_text, last_spoken_time
+
+    if not text:
+        return
+
+    current_time = time.time()
+
+    # Prevent the exact same sentence from repeating too quickly
+    if text == last_spoken_text and current_time - last_spoken_time < SPEAK_INTERVAL:
+        return
+
+    last_spoken_text = text
+    last_spoken_time = current_time
+
+    # Run speech separately so Flask/video stream does not freeze
+    speech_thread = threading.Thread(target=_speak_worker, args=(text,))
+    speech_thread.daemon = True
+    speech_thread.start()
+
+
+def _speak_worker(text):
+    """
+    Safe pyttsx3 worker.
+    A fresh engine is created each time to avoid one-time speech issues.
+    """
+    with speech_lock:
+        try:
+            engine = pyttsx3.init()
+            engine.setProperty("rate", 150)
+            engine.setProperty("volume", 1.0)
+            engine.say(text)
+            engine.runAndWait()
+            engine.stop()
+        except Exception as e:
+            logging.warning(f"TTS Error: {e}")
+
+
+# -------------------------
+# Prediction state
+# -------------------------
+
+latest_prediction = {
+    "label": "Waiting...",
+    "confidence": 0.0,
+    "sentence": "Waiting for gesture...",
+    "model_status": predictor.model_status,
+    "detector_status": "Checking detector..."
+}
+
+hand_detector_status = "Unknown"
+history = deque(maxlen=10)
+
+last_spoken = ""
+last_hand_seen_time = 0
+current_stable_label = ""
+ready_for_next_speech = True
+
+CONFIDENCE_THRESHOLD = 0.75
+MIN_STABLE_FRAMES = 6
+NO_HAND_RESET_TIME = 1.2
+
+MODEL_PATH = os.path.join("models", "hand_landmarker.task")
+
+hand_landmarker = None
+legacy_hands = None
+legacy_mp_draw = None
+legacy_mp_hands_lib = None
+
+
+# -------------------------
+# Cleanup
+# -------------------------
 
 def cleanup():
     global camera, legacy_hands, hand_landmarker
-
-    try:
-        speech_queue.put(None)
-    except Exception:
-        pass
 
     try:
         if camera is not None and camera.isOpened():
@@ -111,6 +174,10 @@ def cleanup():
 
 atexit.register(cleanup)
 
+
+# -------------------------
+# MediaPipe hand detector setup
+# -------------------------
 
 try:
     if os.path.isfile(MODEL_PATH):
@@ -148,17 +215,9 @@ except Exception as e:
             hand_detector_status = f"Legacy MediaPipe failed: {legacy_error}"
 
 
-def speak_text(text):
-    global last_spoken_time
-    current_time = time.time()
-
-    if current_time - last_spoken_time >= SPEAK_INTERVAL:
-        try:
-            speech_queue.put(text)
-            last_spoken_time = current_time
-        except Exception as e:
-            logging.warning(f"Speech queue error: {e}")
-
+# -------------------------
+# Gesture sentence mapping
+# -------------------------
 
 def gesture_to_sentence(label):
     mapping = {
@@ -170,6 +229,10 @@ def gesture_to_sentence(label):
     }
     return mapping.get(label, "Waiting for gesture...")
 
+
+# -------------------------
+# Gesture stability controls
+# -------------------------
 
 def reset_interaction_state():
     global history, last_spoken, current_stable_label, ready_for_next_speech
@@ -234,6 +297,10 @@ def process_stable_speech(display_label):
         last_spoken = display_label
         ready_for_next_speech = False
 
+
+# -------------------------
+# Video frame generation
+# -------------------------
 
 def generate_frames():
     global latest_prediction
@@ -399,6 +466,7 @@ def generate_frames():
                     )
             except Exception:
                 logging.exception("Failed to create placeholder frame")
+
             time.sleep(0.2)
             continue
 
@@ -437,14 +505,37 @@ def get_prediction():
 
 @app.route("/speak_symbol", methods=["POST"])
 def speak_symbol():
-    data = request.get_json()
-    sentence = data.get("sentence", "").strip()
+    """
+    Symbol Mode speech route.
+
+    The updated symbols.html sends:
+        { "text": sentence }
+
+    This route also accepts:
+        { "sentence": sentence }
+
+    So both versions will work.
+    """
+    data = request.get_json(silent=True) or {}
+
+    sentence = data.get("text", "").strip()
+
+    # Backup support for old frontend code
+    if not sentence:
+        sentence = data.get("sentence", "").strip()
 
     if not sentence:
-        return jsonify({"status": "error", "message": "No sentence provided"}), 400
+        return jsonify({
+            "status": "error",
+            "message": "No text provided"
+        }), 400
 
     speak_text(sentence)
-    return jsonify({"status": "success", "sentence": sentence})
+
+    return jsonify({
+        "status": "success",
+        "sentence": sentence
+    })
 
 
 if __name__ == "__main__":
