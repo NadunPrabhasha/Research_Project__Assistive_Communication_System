@@ -15,6 +15,10 @@ from collections import deque
 import predictor
 import numpy as np
 
+from gtts import gTTS
+import pygame
+import tempfile
+
 app = Flask(__name__)
 
 logging.basicConfig(level=logging.INFO)
@@ -67,11 +71,30 @@ last_spoken_time = 0
 SPEAK_INTERVAL = 2.5
 
 
+# def speak_text(text):
+#     """
+#     Speak text using backend pyttsx3.
+#     This function is used by both Gesture Mode and Symbol Mode.
+#     """
+#     global last_spoken_text, last_spoken_time
+
+#     if not text:
+#         return
+
+#     current_time = time.time()
+
+#     # Prevent the exact same sentence from repeating too quickly
+#     if text == last_spoken_text and current_time - last_spoken_time < SPEAK_INTERVAL:
+#         return
+
+#     last_spoken_text = text
+#     last_spoken_time = current_time
+
+#     # Run speech separately so Flask/video stream does not freeze
+#     speech_thread = threading.Thread(target=_speak_worker, args=(text,))
+#     speech_thread.daemon = True
+#     speech_thread.start()
 def speak_text(text):
-    """
-    Speak text using backend pyttsx3.
-    This function is used by both Gesture Mode and Symbol Mode.
-    """
     global last_spoken_text, last_spoken_time
 
     if not text:
@@ -79,34 +102,106 @@ def speak_text(text):
 
     current_time = time.time()
 
-    # Prevent the exact same sentence from repeating too quickly
     if text == last_spoken_text and current_time - last_spoken_time < SPEAK_INTERVAL:
         return
 
     last_spoken_text = text
     last_spoken_time = current_time
 
-    # Run speech separately so Flask/video stream does not freeze
-    speech_thread = threading.Thread(target=_speak_worker, args=(text,))
+    language = selected_language
+
+    speech_thread = threading.Thread(target=_speak_worker, args=(text, language))
     speech_thread.daemon = True
     speech_thread.start()
 
+# def _speak_worker(text):
+#     """
+#     Safe pyttsx3 worker.
+#     A fresh engine is created each time to avoid one-time speech issues.
+#     """
+#     with speech_lock:
+#         try:
+#             engine = pyttsx3.init()
+#             engine.setProperty("rate", 150)
+#             engine.setProperty("volume", 1.0)
+#             engine.say(text)
+#             engine.runAndWait()
+#             engine.stop()
+#         except Exception as e:
+#             logging.warning(f"TTS Error: {e}")
+# def _speak_worker(text):
+#     """
+#     Multilingual TTS worker.
+#     English uses offline pyttsx3.
+#     Sinhala and Tamil use online gTTS.
+#     """
+#     with speech_lock:
+#         try:
+#             if selected_language == "en":
+#                 speak_with_pyttsx3(text)
+#             elif selected_language in ["si", "ta"]:
+#                 speak_with_gtts(text, selected_language)
+#             else:
+#                 speak_with_pyttsx3(text)
 
-def _speak_worker(text):
+#         except Exception as e:
+#             logging.warning(f"TTS Error: {e}")
+
+def _speak_worker(text, language):
     """
-    Safe pyttsx3 worker.
-    A fresh engine is created each time to avoid one-time speech issues.
+    Multilingual TTS worker.
+    English uses offline pyttsx3.
+    Sinhala and Tamil use online gTTS.
     """
     with speech_lock:
         try:
-            engine = pyttsx3.init()
-            engine.setProperty("rate", 150)
-            engine.setProperty("volume", 1.0)
-            engine.say(text)
-            engine.runAndWait()
-            engine.stop()
+            if language == "en":
+                speak_with_pyttsx3(text)
+            elif language in ["si", "ta"]:
+                speak_with_gtts(text, language)
+            else:
+                speak_with_pyttsx3(text)
+
         except Exception as e:
             logging.warning(f"TTS Error: {e}")
+
+def speak_with_pyttsx3(text):
+    """
+    Offline English voice using pyttsx3.
+    """
+    engine = pyttsx3.init()
+    engine.setProperty("rate", 150)
+    engine.setProperty("volume", 1.0)
+    engine.say(text)
+    engine.runAndWait()
+    engine.stop()
+
+
+def speak_with_gtts(text, language):
+    """
+    Online Sinhala/Tamil voice using gTTS.
+    Requires internet connection.
+    """
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+        temp_path = fp.name
+
+    tts = gTTS(text=text, lang=language)
+    tts.save(temp_path)
+
+    pygame.mixer.init()
+    pygame.mixer.music.load(temp_path)
+    pygame.mixer.music.play()
+
+    while pygame.mixer.music.get_busy():
+        time.sleep(0.1)
+
+    pygame.mixer.music.stop()
+    pygame.mixer.quit()
+
+    try:
+        os.remove(temp_path)
+    except Exception:
+        pass
 
 
 # -------------------------
@@ -132,6 +227,12 @@ ready_for_next_speech = True
 CONFIDENCE_THRESHOLD = 0.75
 MIN_STABLE_FRAMES = 6
 NO_HAND_RESET_TIME = 1.2
+
+
+# Current selected language
+# en = English, si = Sinhala, ta = Tamil
+selected_language = "en"
+
 
 MODEL_PATH = os.path.join("models", "hand_landmarker.task")
 
@@ -219,15 +320,44 @@ except Exception as e:
 # Gesture sentence mapping
 # -------------------------
 
-def gesture_to_sentence(label):
-    mapping = {
+# def gesture_to_sentence(label):
+#     mapping = {
+#         "happy": "I am happy",
+#         "help": "I need help",
+#         "food": "I need food",
+#         "water": "I need water",
+#         "toilet": "I need to go to the toilet"
+#     }
+#     return mapping.get(label, "Waiting for gesture...")
+
+LANGUAGE_SENTENCES = {
+    "en": {
         "happy": "I am happy",
         "help": "I need help",
         "food": "I need food",
         "water": "I need water",
         "toilet": "I need to go to the toilet"
+    },
+    "si": {
+        "happy": "මට සතුටුයි",
+        "help": "මට උදව් අවශ්‍යයි",
+        "food": "මට කෑම අවශ්‍යයි",
+        "water": "මට වතුර අවශ්‍යයි",
+        "toilet": "මට වැසිකිළියට යන්න අවශ්‍යයි"
+    },
+    "ta": {
+        "happy": "நான் மகிழ்ச்சியாக இருக்கிறேன்",
+        "help": "எனக்கு உதவி வேண்டும்",
+        "food": "எனக்கு உணவு வேண்டும்",
+        "water": "எனக்கு தண்ணீர் வேண்டும்",
+        "toilet": "நான் கழிப்பறைக்கு செல்ல வேண்டும்"
     }
-    return mapping.get(label, "Waiting for gesture...")
+}
+
+
+def gesture_to_sentence(label):
+    language_map = LANGUAGE_SENTENCES.get(selected_language, LANGUAGE_SENTENCES["en"])
+    return language_map.get(label, "Waiting for gesture...")
 
 
 # -------------------------
@@ -503,37 +633,88 @@ def get_prediction():
     return jsonify(latest_prediction)
 
 
-@app.route("/speak_symbol", methods=["POST"])
-def speak_symbol():
-    """
-    Symbol Mode speech route.
+@app.route("/set_language", methods=["POST"])
+def set_language():
+    global selected_language
 
-    The updated symbols.html sends:
-        { "text": sentence }
-
-    This route also accepts:
-        { "sentence": sentence }
-
-    So both versions will work.
-    """
     data = request.get_json(silent=True) or {}
+    language = data.get("language", "en")
 
-    sentence = data.get("text", "").strip()
-
-    # Backup support for old frontend code
-    if not sentence:
-        sentence = data.get("sentence", "").strip()
-
-    if not sentence:
+    if language not in ["en", "si", "ta"]:
         return jsonify({
             "status": "error",
-            "message": "No text provided"
+            "message": "Unsupported language"
+        }), 400
+
+    selected_language = language
+
+    return jsonify({
+        "status": "success",
+        "language": selected_language
+    })
+
+
+# @app.route("/speak_symbol", methods=["POST"])
+# def speak_symbol():
+#     """
+#     Symbol Mode speech route.
+
+#     The updated symbols.html sends:
+#         { "text": sentence }
+
+#     This route also accepts:
+#         { "sentence": sentence }
+
+#     So both versions will work.
+#     """
+#     data = request.get_json(silent=True) or {}
+
+#     sentence = data.get("text", "").strip()
+
+#     # Backup support for old frontend code
+#     if not sentence:
+#         sentence = data.get("sentence", "").strip()
+
+#     if not sentence:
+#         return jsonify({
+#             "status": "error",
+#             "message": "No text provided"
+#         }), 400
+
+#     speak_text(sentence)
+
+#     return jsonify({
+#         "status": "success",
+#         "sentence": sentence
+#     })
+
+
+@app.route("/speak_symbol", methods=["POST"])
+def speak_symbol():
+    data = request.get_json(silent=True) or {}
+
+    # New method: receive symbol label, for example "food"
+    label = data.get("label", "").strip().lower()
+
+    # Convert label to selected language sentence
+    if label:
+        sentence = gesture_to_sentence(label)
+    else:
+        # Backup method: if old frontend sends direct text
+        sentence = data.get("text", "").strip() or data.get("sentence", "").strip()
+
+    if not sentence or sentence == "Waiting for gesture...":
+        return jsonify({
+            "status": "error",
+            "message": "No valid symbol provided"
         }), 400
 
     speak_text(sentence)
 
     return jsonify({
         "status": "success",
+        "label": label,
+        "language": selected_language,
         "sentence": sentence
     })
 

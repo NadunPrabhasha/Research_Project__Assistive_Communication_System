@@ -1,112 +1,177 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assistive Communication System</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        #emoji {
-            font-size: 80px;
-            margin: 10px 0;
-        }
-
-        .confidence-wrapper {
-            width: 100%;
-            max-width: 400px;
-            margin: 10px auto;
-            background: #e5e7eb;
-            border-radius: 999px;
-            overflow: hidden;
-            height: 20px;
-        }
-
-        .confidence-bar {
-            height: 100%;
-            width: 0%;
-            background: #3f8b65;
-            transition: width 0.3s ease;
-        }
-
-        .status-text {
-            font-size: 14px;
-            color: #666;
-            margin-top: 10px;
-        }
-    </style>
+    <title>Gesture Mode | Assistive Communication System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>Assistive Communication System</h1>
-         <p class="subtitle">Live Gesture Prediction with Hand Detection and Speech Output</p> 
 
-        <div class="video-box">
-            <img src="{{ url_for('video_feed') }}" alt="Live Webcam Feed">
-        </div>
-
-        <div class="prediction-box">
-            <h2>Prediction Result</h2>
-
-            <div id="emoji">🤖</div>
-
-            <p id="label">Waiting...</p>
-            <p id="confidence">Confidence: 0%</p>
-
-            <div class="confidence-wrapper">
-                <div id="confidenceBar" class="confidence-bar"></div>
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="/" class="brand">
+            <div class="brand-icon">✋</div>
+            <div class="brand-text">
+                <span class="brand-title">Gesture Mode</span>
+                <span class="brand-subtitle">Live hand gesture communication</span>
             </div>
+        </a>
 
-            <p id="sentence">Waiting for gesture...</p>
-            <p id="modelStatus" class="status-text">Checking model...</p>
-            <p id="detectorStatus" class="status-text">Checking detector...</p>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/gesture" class="active">Gesture Mode</a>
+            <a href="/symbols">Symbol Mode</a>
+        </div>
+    </div>
+</nav>
+
+<main class="page">
+    <div class="section-title">
+        <h1>Gesture Communication</h1>
+        <p>Show a hand gesture to generate a sentence and voice output.</p>
+    </div>
+
+    <div style="text-align:center; margin-bottom:24px;">
+        <div class="language-box">
+            <label for="languageSelect">Language</label>
+            <select id="languageSelect" onchange="changeLanguage()">
+                <option value="en">English</option>
+                <option value="si">Sinhala</option>
+                <option value="ta">Tamil</option>
+            </select>
         </div>
     </div>
 
-    <script>
-        const emojiMap = {
-            happy: "😊",
-            help: "🆘",
-            food: "🍔",
-            water: "💧",
-            toilet: "🚻"
-        };
+    <section class="dashboard">
+        <div class="card panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Live Camera Feed</h2>
+                    <p class="panel-subtitle">MediaPipe hand landmark detection is shown in real time.</p>
+                </div>
+                <span class="status-badge">
+                    <span class="status-dot"></span>
+                    Camera Active
+                </span>
+            </div>
 
-        // let previousSentence = "";
+            <div class="video-frame">
+                <img src="{{ url_for('video_feed') }}" alt="Live Gesture Video Feed">
+            </div>
+        </div>
 
-        // function speak(text) {
-        //     if (!('speechSynthesis' in window)) return;
-        //     if (!text || text === "Waiting for gesture...") return;
-        //     const utter = new SpeechSynthesisUtterance(text);
-        //     utter.rate = 1;
-        //     window.speechSynthesis.cancel();
-        //     window.speechSynthesis.speak(utter);
-        // }
+        <div class="card result-card">
+            <div class="result-icon" id="emoji">🤖</div>
 
-        async function fetchPrediction() {
-            try {
-                const response = await fetch("/get_prediction");
-                const data = await response.json();
+            <p class="panel-subtitle">Prediction Result</p>
+            <h2 class="result-label" id="label">Waiting...</h2>
 
-                document.getElementById("label").innerText = data.label;
-                document.getElementById("confidence").innerText = `Confidence: ${data.confidence}%`;
-                document.getElementById("sentence").innerText = data.sentence;
-                document.getElementById("modelStatus").innerText = data.model_status || "Model status unavailable";
-                document.getElementById("detectorStatus").innerText = data.detector_status || "Detector status unavailable";
+            <div class="confidence-wrap">
+                <div class="confidence-top">
+                    <span id="confidence">Confidence: 0%</span>
+                    <span id="confidenceStatus">Waiting</span>
+                </div>
+                <div class="confidence-track">
+                    <div class="confidence-fill" id="confidenceBar"></div>
+                </div>
+            </div>
 
-                document.getElementById("emoji").innerText = emojiMap[data.label] || "🤖";
-                document.getElementById("confidenceBar").style.width = `${data.confidence}%`;
+            <p class="result-sentence" id="sentence">Waiting for gesture...</p>
 
-                // // Speak sentence on change
-                // if (data.sentence && data.sentence !== previousSentence) {
-                //     speak(data.sentence);
-                //     previousSentence = data.sentence;
-                // }
-            } catch (error) {
-                console.error("Error fetching prediction:", error);
-            }
+            <div class="status-grid">
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="modelStatus">Model status unavailable</span>
+                </div>
+
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="detectorStatus">Detector status unavailable</span>
+                </div>
+
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    Multilingual voice enabled
+                </div>
+            </div>
+
+            <div class="action-row">
+                <a href="/" class="btn btn-secondary">Back Home</a>
+                <a href="/symbols" class="btn btn-primary">Symbol Mode</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        Confidence threshold, prediction smoothing, and timing controls are used to reduce incorrect repeated outputs.
+    </footer>
+</main>
+
+<script>
+    const emojiMap = {
+        happy: "🙂",
+        help: "🆘",
+        food: "🍽️",
+        water: "💧",
+        toilet: "🚻"
+    };
+
+    function getConfidenceStatus(confidence) {
+        if (confidence >= 85) return "High";
+        if (confidence >= 75) return "Medium";
+        if (confidence > 0) return "Low";
+        return "Waiting";
+    }
+
+    async function fetchPrediction() {
+        try {
+            const response = await fetch("/get_prediction");
+            const data = await response.json();
+
+            const label = data.label || "Waiting...";
+            const confidence = data.confidence || 0;
+            const sentence = data.sentence || "Waiting for gesture...";
+
+            document.getElementById("label").innerText = label;
+            document.getElementById("confidence").innerText = `Confidence: ${confidence}%`;
+            document.getElementById("confidenceStatus").innerText = getConfidenceStatus(confidence);
+            document.getElementById("sentence").innerText = sentence;
+            document.getElementById("modelStatus").innerText = data.model_status || "Model status unavailable";
+            document.getElementById("detectorStatus").innerText = data.detector_status || "Detector status unavailable";
+
+            const cleanLabel = label.toLowerCase();
+            document.getElementById("emoji").innerText = emojiMap[cleanLabel] || "🤖";
+            document.getElementById("confidenceBar").style.width = `${confidence}%`;
+        } catch (error) {
+            console.error("Error fetching prediction:", error);
         }
+    }
 
-        setInterval(fetchPrediction, 500);
-    </script>
+    function changeLanguage() {
+        const language = document.getElementById("languageSelect").value;
+
+        fetch("/set_language", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                language: language
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Language changed:", data);
+        })
+        .catch(error => {
+            console.error("Language change error:", error);
+        });
+    }
+
+    setInterval(fetchPrediction, 500);
+</script>
+
 </body>
 </html>

@@ -1,126 +1,82 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Assistive Communication System</title>
-
-<style>
-body{
-    font-family: Arial, sans-serif;
-    background:#f4f6f8;
-    margin:0;
-    padding:0;
-    text-align:center;
-}
-
-.container{
-    margin-top:80px;
-    padding:30px;
-}
-
-h1{
-    font-size:100px;
-    margin-bottom:10px;
-    color:#111827;
-}
-
-.subtitle{
-    color:#555;
-    margin-bottom:50px;
-    max-width:800px;
-    margin-left:auto;
-    margin-right:auto;
-    line-height:1.6;
-    font-size:18px;
-}
-
-.mode-container{
-    display:flex;
-    justify-content:center;
-    gap:40px;
-    flex-wrap:wrap;
-}
-
-.mode-card{
-    background:white;
-    padding:40px;
-    border-radius:18px;
-    width:380px;
-    box-shadow:0 10px 24px rgba(0,0,0,0.12);
-    text-decoration:none;
-    color:black;
-    transition:0.25s;
-    border:1px solid #e5e7eb;
-}
-
-.mode-card:hover{
-    transform:translateY(-8px) scale(1.02);
-    box-shadow:0 14px 28px rgba(0,0,0,0.18);
-}
-
-.icon{
-    font-size:100px;
-    margin-bottom:15px;
-}
-
-.mode-title{
-    font-size:42px;
-    font-weight:bold;
-    margin-bottom:8px;
-}
-
-.mode-desc{
-    font-size:20px;
-    color:#666;
-    line-height:1.5;
-}
-
-.footer-note{
-    margin-top:100px;
-    color:#666;
-    font-size:22px;
-    font-family: Arial, Helvetica, sans-serif;
-    font-weight: bold;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistive Communication System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-
 <body>
 
-<div class="container">
-
-    <h1>Assistive Communication System</h1>
-
-    <p class="subtitle">
-        ----------------------------------------------------------------------------------------------------------------------------
-    </p>
-
-    <div class="mode-container">
-
-        <a href="/gesture" class="mode-card">
-            <div class="icon">✋</div>
-            <div class="mode-title">Gesture Mode</div>
-            <!-- <div class="mode-desc">
-                Real-time hand gesture recognition with voice output using computer vision.
-            </div> -->
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="/" class="brand">
+            <div class="brand-icon">🗣️</div>
+            <div class="brand-text">
+                <span class="brand-title">Assistive Communication</span>
+                <span class="brand-subtitle">Gesture & Symbol Support</span>
+            </div>
         </a>
 
-        <a href="/symbols" class="mode-card">
-            <div class="icon">🧩</div>
-            <div class="mode-title">Symbol Mode</div>
-            <!-- <div class="mode-desc">
-                Click visual symbols to communicate common needs, emotions, and actions.
-            </div> -->
-        </a>
-
+        <div class="nav-links">
+            <a href="/" class="active">Home</a>
+            <a href="/gesture">Gesture Mode</a>
+            <a href="/symbols">Symbol Mode</a>
+        </div>
     </div>
+</nav>
 
-    <p class="footer-note">
-        Choose a mode to start communication assistance.
-    </p>
+<main class="page">
+    <section class="hero">
+        <!-- <div class="hero-badge">🌐 Multilingual Voice Support</div> -->
 
-</div>
+        <h1>Assistive Communication System</h1>
+
+        <p>
+            A smart communication aid designed to help speech-impaired children
+            express basic needs using real-time hand gestures and visual symbols.
+        </p>
+
+        <div class="mode-grid">
+            <a href="/gesture" class="card mode-card">
+                <div>
+                    <div class="mode-icon">✋</div>
+                    <h2>Gesture Mode</h2>
+                    <p>
+                        Use webcam-based hand gesture recognition to generate
+                        meaningful voice output in real time.
+                    </p>
+                </div>
+                <span class="btn btn-primary">Start Gesture Mode</span>
+            </a>
+
+            <a href="/symbols" class="card mode-card">
+                <div>
+                    <div class="mode-icon">🧩</div>
+                    <h2>Symbol Mode</h2>
+                    <p>
+                        Select visual symbols for common needs and convert them
+                        into spoken communication.
+                    </p>
+                </div>
+                <span class="btn btn-primary">Start Symbol Mode</span>
+            </a>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-chip">📷 Real-Time Detection</div>
+            <div class="feature-chip">🧠 Deep Learning Model</div>
+            <div class="feature-chip">🔊 Voice Output</div>
+            <div class="feature-chip">🌍 English / Sinhala / Tamil</div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        Final Year Research Project · Gesture-Based Assistive Communication System
+    </footer>
+</main>
 
 </body>
 </html>
