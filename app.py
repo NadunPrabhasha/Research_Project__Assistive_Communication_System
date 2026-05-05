@@ -24,7 +24,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # -------------------------
-# Camera setup
+# Camera setup - Opens webcam using OpenCV
 # -------------------------
 
 camera = cv2.VideoCapture(0)
@@ -71,29 +71,6 @@ last_spoken_time = 0
 SPEAK_INTERVAL = 2.5
 
 
-# def speak_text(text):
-#     """
-#     Speak text using backend pyttsx3.
-#     This function is used by both Gesture Mode and Symbol Mode.
-#     """
-#     global last_spoken_text, last_spoken_time
-
-#     if not text:
-#         return
-
-#     current_time = time.time()
-
-#     # Prevent the exact same sentence from repeating too quickly
-#     if text == last_spoken_text and current_time - last_spoken_time < SPEAK_INTERVAL:
-#         return
-
-#     last_spoken_text = text
-#     last_spoken_time = current_time
-
-#     # Run speech separately so Flask/video stream does not freeze
-#     speech_thread = threading.Thread(target=_speak_worker, args=(text,))
-#     speech_thread.daemon = True
-#     speech_thread.start()
 def speak_text(text):
     global last_spoken_text, last_spoken_time
 
@@ -114,38 +91,6 @@ def speak_text(text):
     speech_thread.daemon = True
     speech_thread.start()
 
-# def _speak_worker(text):
-#     """
-#     Safe pyttsx3 worker.
-#     A fresh engine is created each time to avoid one-time speech issues.
-#     """
-#     with speech_lock:
-#         try:
-#             engine = pyttsx3.init()
-#             engine.setProperty("rate", 150)
-#             engine.setProperty("volume", 1.0)
-#             engine.say(text)
-#             engine.runAndWait()
-#             engine.stop()
-#         except Exception as e:
-#             logging.warning(f"TTS Error: {e}")
-# def _speak_worker(text):
-#     """
-#     Multilingual TTS worker.
-#     English uses offline pyttsx3.
-#     Sinhala and Tamil use online gTTS.
-#     """
-#     with speech_lock:
-#         try:
-#             if selected_language == "en":
-#                 speak_with_pyttsx3(text)
-#             elif selected_language in ["si", "ta"]:
-#                 speak_with_gtts(text, selected_language)
-#             else:
-#                 speak_with_pyttsx3(text)
-
-#         except Exception as e:
-#             logging.warning(f"TTS Error: {e}")
 
 def _speak_worker(text, language):
     """
@@ -320,16 +265,6 @@ except Exception as e:
 # Gesture sentence mapping
 # -------------------------
 
-# def gesture_to_sentence(label):
-#     mapping = {
-#         "happy": "I am happy",
-#         "help": "I need help",
-#         "food": "I need food",
-#         "water": "I need water",
-#         "toilet": "I need to go to the toilet"
-#     }
-#     return mapping.get(label, "Waiting for gesture...")
-
 LANGUAGE_SENTENCES = {
     "en": {
         "happy": "I am happy",
@@ -389,12 +324,12 @@ def draw_bbox_and_predict(frame, x_list, y_list, w, h):
     y_max = min(max(y_list) + 20, h)
 
     cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
-
+##
     hand_crop = frame[y_min:y_max, x_min:x_max]
 
     if hand_crop.size == 0:
         return "Detecting...", 0.0, None, None
-
+##
     label, confidence = predictor.predict_frame(hand_crop)
 
     if confidence >= CONFIDENCE_THRESHOLD and label not in ["Model missing", "Prediction error"]:
@@ -414,7 +349,7 @@ def process_stable_speech(display_label):
     global current_stable_label, ready_for_next_speech, last_spoken
 
     if display_label == "Detecting...":
-        return
+        return  
 
     sentence = gesture_to_sentence(display_label)
 
@@ -653,40 +588,6 @@ def set_language():
         "language": selected_language
     })
 
-
-# @app.route("/speak_symbol", methods=["POST"])
-# def speak_symbol():
-#     """
-#     Symbol Mode speech route.
-
-#     The updated symbols.html sends:
-#         { "text": sentence }
-
-#     This route also accepts:
-#         { "sentence": sentence }
-
-#     So both versions will work.
-#     """
-#     data = request.get_json(silent=True) or {}
-
-#     sentence = data.get("text", "").strip()
-
-#     # Backup support for old frontend code
-#     if not sentence:
-#         sentence = data.get("sentence", "").strip()
-
-#     if not sentence:
-#         return jsonify({
-#             "status": "error",
-#             "message": "No text provided"
-#         }), 400
-
-#     speak_text(sentence)
-
-#     return jsonify({
-#         "status": "success",
-#         "sentence": sentence
-#     })
 
 
 @app.route("/speak_symbol", methods=["POST"])

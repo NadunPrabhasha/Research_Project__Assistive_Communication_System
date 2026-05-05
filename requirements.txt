@@ -1,18 +1,19 @@
-flask
-tensorflow==2.15.0
-mediapipe==0.10.9
+flask - A micro web framework written in Python./Lightweight backend framework for web app and routing
+tensorflow==2.15.0 Model training and inference
+mediapipe==0.10.9  Real time hand landmark detection
 opencv-contrib-python==4.8.1.78
 numpy==1.26.4
-pyttsx3
+pyttsx3 Offline English text-to-speech
 matplotlib
 pillow
+MobileNetV2  Lightweight CNN suitable for real-time classification
 
 
 
 flask
-opencv-python
+opencv-python -Webcam capture, frame processing, drawing boxes
 tensorflow
-numpy
+numpy -Image array processing
 pyttsx3
-gTTS
+gTTS - Sinhala/Tamil multilingual voice output
 pygame
